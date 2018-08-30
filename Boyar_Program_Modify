@@ -1,4 +1,3 @@
-
 #include <math.h>
 #include <ctype.h>
 #include <fstream>
@@ -14,27 +13,25 @@ const bool PRINTROWS=true;
 
 int NumInputs; 
 int DepthLimit;
-int Threshold;
-int MiniDistance;
+long long int DepthNewBase;
 int NumTargets;
 int ProgramSize;
 long long int Target[MaxBaseSize];
-long long int NewIndex[MaxBaseSize];
+int TargetW[MaxBaseSize];
 int Dist[MaxBaseSize]; //distance from current base to Target[i]
 int NDist[MaxBaseSize]; //what Dist would be if NewBase was added
 long long int Base[MaxBaseSize];
 int BaseSize;
 int TargetsFound;
 char Result[MaxBaseSize][50];
+//Char Result1[MaxBaseSize][50];
 int  Res;
+//int  Res1;
 char *flag;
 int Depth[MaxBaseSize];
 int MaxDepth;
-int Cou;
 
 int bitcount(long long int x);
-int ReturnLoop();
-void ChangeMatrix();
 void InitBase();
 void ReadTargetMatrix();
 bool is_target(long long int x);
@@ -42,6 +39,7 @@ bool is_base(long long int x);
 int NewDistance(int u); //calculates the distance from the base to Target[u]
 int TotalDistance(); //returns the sum of distances to targets
 bool reachable(long long int T, int K, int S);
+bool reachablE(long long int T, int K, int S, long long int L);
 bool EasyMove(); //if any two bases add up to a target, pick them
 void PickNewBaseElement();
 void binprint(long long int x); //outputs last NumInputs bits of x 
@@ -57,7 +55,7 @@ ifstream TheMatrix;
 int
 main(int argc, char *argv[])
 {
-  int NumMatrices; 
+  int NumMatrices, Threshold; 
   int sum;
   int order[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   int order1_2[16] = {0, 1, 6, 7, 2, 3, 4, 5, 8, 9, 14, 15, 10, 11, 12, 13};
@@ -68,7 +66,7 @@ main(int argc, char *argv[])
 
   clock_t t1=clock();
   //TheMatrix.open("matrices/matrices.txt");
-  TheMatrix.open("MDS_84XOR.txt");
+  TheMatrix.open("MDS_New.txt");
   //TheMatrix.open("tlt");
   //TheMatrix.open("baaaaad");
   //TheMatrix.open("matrices/b");
@@ -79,11 +77,10 @@ main(int argc, char *argv[])
   for (i = 0; i < NumMatrices; i++)
   {
     ReadTargetMatrix(); 
-    TargetsFound = 0;
     InitBase();
     ProgramSize = 0; 
     int counter = 0; 
-    while (TargetsFound < NumTargets-Cou) 
+    while (TargetsFound < NumTargets) 
     {
 	  counter++;
 	  if(ProgramSize > Threshold)
@@ -92,91 +89,59 @@ main(int argc, char *argv[])
 	  }
 	  if (!EasyMove()) PickNewBaseElement();
     }
+//    if(MaxDepth > DepthLimit){
+//    	int k = 0;
+//    	for(int i = 0; i < BaseSize; i++){
+//    		if(Depth(i) > DepthLimit){
+//    			TargetW[k] = i;
+//    			k += 1;
+//    			for(int j = 0; j < NumTargets; j++){
+//    				if(Target[j] == Base[i]) Dist[j] = bitcount(Target[j]) - 1;
+//				}
+//    			
+//			}
+//		} 
+//		for(int i = 0; i < k; i++){
+//			int j = 0;
+//			int m = TargetW[i];
+//			int l = Dist[m];
+//			int n;
+//			while((j < BaseSize) && (Depth[j] < DepthLimit - 1)){
+//				NewBase = Base[j] ^ Base[m];
+//				if(bitcount[NewBase] < l) l = bitcount[NewBase]; n = j;
+//				j += 1;
+//			}
+//		}         
+//	}
     if(ProgramSize <= Threshold)
     	PrintResult();
     else
     	printf("Out of threshold\n\n");
-//    if(i % 3 == 2)
-//    	cout << endl;
-
-//    if(i % 2 == 0)
-//    	sum = ProgramSize;
-//    else
-//    	if(sum + ProgramSize > 0)
-//    	{
-//    		cout << (i-1)/2 << endl;
-//    		cout << sum << ' ' << ProgramSize << endl << endl;
-//		}
-	
-//	if(i % 2 == 0)
-//		U[i/2] = ProgramSize;
-//	else
-//		B[i/2] = ProgramSize;    	
-  }
-//  for(i = 0; i < 16; ++i)
-//  {
-//  	int k = order2_3[i];
-//  	printf("%d\n%d\t%d\n\n", k, U[k], B[k]);
-//  }
   	
+  }
+	
   clock_t t2=clock();
   cout << (t2-t1)/(double)CLOCKS_PER_SEC;
 }//main
 
-int ReturnLoop()
-{
-    MiniDistance = BaseSize*NumTargets;
-    //clock_t t1=clock();
-    ChangeMatrix(); 
-    //printf("%d \n", TargetsFound);
-    InitBase();
-    //printf("%d \n", TargetsFound);
-    //ProgramSize = 0; 
-    int counter = 0; 
-    //printf("%d %d \n", TargetsFound, NumTargets);
-    while (TargetsFound < NumTargets-Cou) 
-    {
-	  counter++;
-	  //printf("%d \n", 12345);
-	  if(ProgramSize > Threshold)
-	  {
-		break;
-	  }
-	  //printf("%d \n", 12345);
-	  if (!EasyMove()) PickNewBaseElement();
-	  //printf("%d %d \n", TargetsFound, NumTargets-Cou);
-      
-    }
-    if (ProgramSize > Threshold)
-    	printf("Out of threshold\n\n");
-    	
-  
-  //clock_t t2=clock();
-  //cout << (t2-t1)/(double)CLOCKS_PER_SEC;
-}
-
 void InitBase()
 {
-	
-	Res = ProgramSize;
 	TargetsFound = 0;
+	Res = 0;
+	//Res1 = 0;
 	Base[0] = 1;
 	Depth[0] = 0;
 	MaxDepth = 0;
-	Cou = 0;
 	for (int i = 1; i < NumInputs; i++) 
 	{
 		Base[i] = 2*Base[i-1];
 		Depth[i] = 0;
 	}
 	BaseSize = NumInputs; //initial base is just the xi's, depth is 0
-	for (int i = 0; i < NumTargets; i++) {
-	
-	    if (Target[i] == 0) Cou += 1; continue;
+	for (int i = 0; i < NumTargets; i++) 
 	    if (Dist[i] == 0) 
 		{
 			TargetsFound++;
-			//printf("%d \n", i);
 			//print the expression of output and input
 			for(int j = 0; j < NumInputs; ++j)
 				if(Base[j] == Target[i])
@@ -186,7 +151,6 @@ void InitBase()
 					break;
 				}
 		}
-	}
 }
 
 int TotalDistance() //returns the sum of distances to targets
@@ -215,25 +179,32 @@ bool EasyMove()
     {
       foundone = true;
       t = i;
-      //printf("y%d \n", t);
-      MiniDistance = 0;
       break;
     }
   if (!foundone) return false;
   //update Dist array
   NewBase = Target[t]; 
-  for (int u = 0; u < NumTargets; u++) 
-  {
-    Dist[u] = NewDistance(u); 
-	MiniDistance += Dist[u]; 
-  }
+  
+  //for (int u = 0; u < NumTargets; u++) Dist[u] = NewDistance(u); 
   //update Base with NewBase 
   Base[BaseSize] = NewBase; 
   BaseSize++; 
+  
+	
+  for(int i = 0; i < BaseSize; ++i)
+		for(int j = i + 1; j < BaseSize; ++j)
+			if((Base[i] ^ Base[j]) == Base[BaseSize-1])
+			{
+				DepthNewBase = pow(2, Depth[i]) + pow(2, Depth[j]);
+		    }
+	    
+  
+  for (int u = 0; u < NumTargets; u++) Dist[u] = NewDistance(u);
   ProgramSize++;
   //print the expression
   PrintExpression(t);
   TargetsFound++;
+  //printf("%d \n", t);
   return true;
 } //EasyMove()
 
@@ -272,9 +243,9 @@ void PrintExpression(int No)
 				else
 					flag += sprintf(flag, "t%d + ", i - NumInputs + 1);
 				if(j < NumInputs)
-					flag += sprintf(flag, "x%d *  y%d  (%d) %#x\n", j, No, Depth[BaseSize-1], Base[BaseSize-1]);
+					flag += sprintf(flag, "x%d *  y%d  (%d)\n", j, No, Depth[BaseSize-1]);
 				else
-					flag += sprintf(flag, "t%d *  y%d  (%d) %#x\n", j - NumInputs + 1, No, Depth[BaseSize-1], Base[BaseSize-1]);
+					flag += sprintf(flag, "t%d *  y%d  (%d)\n", j - NumInputs + 1, No, Depth[BaseSize-1]);
 				++Res;
 				return;
 			}
@@ -301,7 +272,7 @@ void PickNewBaseElement()
 		{
 			if (Depth[j] + 1 >= DepthLimit) continue;
 			NewBase = Base[i] ^ Base[j];
-			//sanity check
+			DepthNewBase = pow(2, Depth[j]) + pow(2, Depth[i]);
 			if (NewBase == 0) { cout << "a base is 0, should't happen " << endl; exit(0); }
 			//if NewBase is not new continue
 			if (is_base(NewBase)) continue;
@@ -337,20 +308,14 @@ void PickNewBaseElement()
 					MinDistance = ThisDist;
 					OldNorm = ThisNorm;
 				}
-			}   
+			}
 		}
 	if (easytarget) break;
 	}
-	if (MinDistance == MiniDistance) ReturnLoop();
-	else {
-	MiniDistance = MinDistance;
 	//update Dist array
 	NewBase = TheBest; 
 	for (int i = 0; i < NumTargets; i++) Dist[i] = BestDist[i];
-	//printf ("%d %d %d \n", besti, bestj, MiniDistance);
-	//std::cout<<"Press [ENTER] to continue\n";
-    //std::cin.get();
-	//update Base with TheBest
+	
 	Base[BaseSize] = TheBest;
 	Depth[BaseSize] = Max(besti, bestj) + 1; 
 	if(Depth[BaseSize] > MaxDepth)
@@ -366,12 +331,11 @@ void PickNewBaseElement()
 	else
 		flag += sprintf(flag, "t%d + ", besti - NumInputs + 1);
 	if(bestj < NumInputs)
-		flag += sprintf(flag, "x%d  (%d) %#x\n", bestj, Depth[BaseSize-1], Base[BaseSize-1]);
+		flag += sprintf(flag, "x%d  (%d)\n", bestj, Depth[BaseSize-1]);
 	else
-		flag += sprintf(flag, "t%d  (%d) %#x\n", bestj - NumInputs + 1, Depth[BaseSize-1], Base[BaseSize-1]);
+		flag += sprintf(flag, "t%d  (%d)\n", bestj - NumInputs + 1, Depth[BaseSize-1]);
 	++Res;
 	if (is_target(TheBest)) TargetsFound++; //this shouldn't happen
-    }
 } //PickNewBaseElement()
 
 void binprint(long long int x) //outputs last NumInputs bits of x 
@@ -428,21 +392,6 @@ void ReadTargetMatrix()
   }
 } //ReadTargetMatrix()
 
-void ChangeMatrix()
-{
-  
-  for (int i = 0; i < NumTargets; i++)
-  {
-  	
-	if (Dist[i] == 0) {
-	    
-	    Dist[i] = -1;
-	    Target[i] = 0;
-    }
-	else Dist[i] = bitcount(Target[i]) - 1;
-  }
-  
-}
 
 bool is_target(long long int x)
 {
@@ -454,37 +403,26 @@ bool is_target(long long int x)
 bool is_base(long long int x)
 {
   //sanity check, shouldn't ask if 0 is base
-  if (x == 0) {cout << "asking if 0 is in Base " <<endl ; exit(0); }
+  if (x==0) { cout << "asking if 0 is in Base " <<endl ; exit(0); }
+  
   for (int i = 0; i < BaseSize; i++) if (x == Base[i]) return true;
   return false;
 } //is_base
 
-// Distance is 1 less than the number of elements
-// in the base that I need to add in order to get Target[u].
-// The next function calculates the distance from the base,
-// augmented by NewBase, to Target[u]. Uses the following observations:
-// Adding to the base can only decrease distance. 
-// Also, since NewBase is the sum of two old base 
-// elements, the distance from the augmented base 
-// to Target[u] can decrease at most by 1. If the
-// the distance decreases, then NewBase must be one
-// of the summands.
+
   
 int NewDistance(int u) 
 {
-  //if Target[u] is in augmented base return 0;
+  
   if (Target[u] == 0) return 0;
   else 
   {
     if (is_base(Target[u]) || (NewBase == Target[u])) return 0;
   
-  // Try all combinations of Dist[u]-1 base elements until one sums 
-  // to Target[u] + NewBase. If this is true, then Target[u] is the
-  // sum of Dist[u] elements in the augmented base, and therefore
-  // the distance decreases by 1.
   
-    if (reachable(Target[u] ^ NewBase,Dist[u]-1,0)) return (Dist[u]-1);
-    else return Dist[u]; //keep old distance 
+  
+    if (reachablE(Target[u] ^ NewBase, Dist[u]-1, 0, pow(2, DepthLimit) - DepthNewBase)) return (Dist[u]-1);
+    else return Dist[u]; 
   }
 } //NewDistance(int u) 
 
@@ -497,7 +435,7 @@ bool reachable(long long int T, int K, int S)
     if (K==0) return false; //this is probably not reached
     if (K==1) 
     {
-      for (int i=S; i < BaseSize; i++) if (T == Base[i]) return true;
+      for (int i=S; i < BaseSize; i++) if (T == Base[i])  return true;
       return false;
     } 
     
@@ -508,6 +446,25 @@ bool reachable(long long int T, int K, int S)
     //not found
     return false;
 } // reachable(long long int T, int K, int S)
+
+bool reachablE(long long int T, int K, int S, long long int L)
+{
+	if ((BaseSize-S) < K) return false; //not enough base elements
+    if (L < 1) return false;
+    if (K==0) return false; //this is probably not reached
+    if (K==1) 
+    {
+      for (int i=S; i < BaseSize; i++) if ((T == Base[i]) && (pow(2, Depth[i]) <= L)) return true;
+      return false;
+    } 
+    
+    //consider those sums containing Base[S]
+    if (reachablE(T^Base[S], K-1, S+1, L - pow(2, Depth[S]))) return true;
+    //consider those sums not containing Base[S]
+    if (reachablE(T, K, S+1, L)) return true;
+    //not found
+    return false;
+}
 
 int bitcount(long long int x)
 {
